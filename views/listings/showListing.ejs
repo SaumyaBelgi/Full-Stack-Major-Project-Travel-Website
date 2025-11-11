@@ -1,0 +1,20 @@
+<!-- NOTE: This is the ejs template for showing a particular listing in detail. It sends a GET request to display the form for editing this listing as well as a DELETE request for deleting this listing  -->
+
+<% layout('/layouts/boilerplate') -%> <!-- templating done with the help of ejs-mate -->
+<body>
+    <h3>Listing Details: </h3>
+    <ul>
+        <li><%= listing.title %></li>
+        <li><%= listing.description %></li>
+        <!-- function to insert proper commas in price as per Indian system -->
+        <li> &#8377 <%= listing.price.toLocaleString("en-IN") %></li>  
+        <li><%= listing.location %></li>
+        <li><%= listing.country %></li>
+    </ul>
+    <br><br>
+    <a href="/listings/<%= listing._id%>/edit">Edit this listing</a>
+    <br><br>
+    <form method="POST" action="/listings/<%= listing._id%>?_method=DELETE">
+        <button>Delete</button>
+    </form>
+</body>
