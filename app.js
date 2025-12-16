@@ -4,12 +4,15 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const Listing = require("./models/listing.js");
+const Review = require("./models/review.js");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const wrapAsync = require("./utils/wrapAsync.js");
 const ExpressError = require("./utils/ExpressError.js");
-const { stat } = require("fs");
+const { listingSchema } = require("./schema.js");
+const { reviewSchema } = require("./schema.js");
+ 
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -55,26 +58,37 @@ app.get("/listings/new", (req, res) => {
 //GET request to show more details about a particular listing after clicking on it
 app.get("/listings/:id", wrapAsync(async (req, res) => {
     let { id } = req.params;
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(id).populate("reviews");
     res.render("listings/showListing.ejs", { listing });
 }));
 
+//A function to carry out the schema validations using Joi while creating a new listing
+const validateListing = (req, res, next) =>{
+    let result  = listingSchema.validate(req.body);
+
+    if(result.error){
+        throw new ExpressError(400, result.error);
+    }
+    next();
+}
+
+
 //POST request to save the newly created listing in the database. The form to create a listing sends a POST request here
-app.post("/listings", wrapAsync(async (req, res, next) => {
-    
-        let { title, description, image, price, location, country } = req.body;
-        let newListing = new Listing({
-            title: title,
-            description: description,
-            image: image,
-            price: price,
-            location: location,
-            country: country
-        });
-        await newListing.save();
-        res.redirect("/listings");
+app.post("/listings", validateListing, wrapAsync(async (req, res, next) => {
+    let { title, description, image, price, location, country } = req.body;
+    let newListing = new Listing({
+        title: title,
+        description: description,
+        image: image,
+        price: price,
+        location: location,
+        country: country
+    });
+    await newListing.save();
+    res.redirect("/listings");
     })
 );
+
 
 //GET request to render the form for editing a particular listing
 app.get("/listings/:id/edit", wrapAsync(async (req, res) => {
@@ -84,7 +98,7 @@ app.get("/listings/:id/edit", wrapAsync(async (req, res) => {
 }));
 
 ////POST request to save the newly updated listing in the database. The form to update a listing sends a PUT request here
-app.put("/listings/:id", wrapAsync(async (req, res) => {
+app.put("/listings/:id", validateListing, wrapAsync(async (req, res) => {
     let { id } = req.params;
     let { title, description, image, price, location, country } = req.body;
     let updatedListing = {
@@ -107,6 +121,35 @@ app.delete("/listings/:id", wrapAsync(async (req, res) => {
     res.redirect("/listings");
 }));
 
+
+//A function to carry out the schema validations using Joi while creating a new listing
+const validateReview = (req, res, next) =>{
+    let result  = reviewSchema.validate(req.body);
+
+    if(result.error){
+        throw new ExpressError(400, result.error);
+    }
+    next();
+}
+
+
+//POST request to save a review that a user has written
+app.post("/listings/:id/reviews", validateReview, wrapAsync(async(req, res) =>{
+    let listing = await Listing.findById(req.params.id);
+    let { rating, comment } = req.body;
+    
+    let newReview = new Review({
+        comment: comment,
+        rating: rating
+    });
+
+    listing.reviews.push(newReview); //store it into the reviews array of the listing
+    await newReview.save();
+    await listing.save();
+
+    res.redirect(`/listings/${listing._id}`);
+}))
+
 //a function that handles the incoming request if it does not match with any of the above
 app.all(/.*/, (req, res, next) =>{
     next(new ExpressError(404, "Page not found!"));
@@ -115,5 +158,5 @@ app.all(/.*/, (req, res, next) =>{
 
 app.use((err, req, res, next) => {
     let {statusCode = 500, message = "Something went wrong!"} = err;
-    res.status(statusCode).send(message);
+    res.status(statusCode).render("error.ejs", { err });
 })

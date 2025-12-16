@@ -1,6 +1,7 @@
 //NOTE: This is the first collection being created in the WanderLust database. It stores details of all property listings. The schema of the collection is being defined here. The default option is being set if the property owner does not add any images. The set method is setting a default image if the property owner adds an image, but it is an empty url. The collection formed is being exported at the end
 
 const mongoose=require("mongoose");
+const {Schema} = mongoose;
 
 const listingSchema = new mongoose.Schema(
     {
@@ -17,7 +18,13 @@ const listingSchema = new mongoose.Schema(
         },
         price: Number,
         location: String,
-        country: String
+        country: String,
+        reviews: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Review"
+            }
+        ]
     }
 );
 

@@ -88,3 +88,17 @@ body{
 
     border: none !important;
 }
+
+/* show image styling*/
+.show-img {
+    height: 50vh;
+}
+
+a {
+    text-decoration: none;
+    display: inline-block !important;
+}
+
+.row {
+    margin-top: 2rem;
+}
